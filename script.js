@@ -1,226 +1,240 @@
-// productos.js - VERSIÓN MEJORADA (GitHub primero)
+// script.js - VERSIÓN SIMPLIFICADA Y CORREGIDA
+// Este archivo solo muestra los productos en la página
 
-const GITHUB_RAW_URL_SCRIPT = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
-const PRODUCTOS_KEY = 'cleanSolutionsProductos_v1';
-
-// PRODUCTOS POR DEFECTO (backup inicial)
-const PRODUCTOS_POR_DEFECTO = [
-    {
-        id: 'jabon-ariel',
-        nombre: 'Jabón tipo Ariel - Limpieza Profunda',
-        precio: '$8.000',
-        imagen: 'jabonAriel.jpg', 
-        descripcion: 'Jabón líquido tipo Ariel baja espuma.',
-        caracteristicas: ['Precio por litro: $1.800']
-    },
-    {
-        id: 'jabon-alaPan',
-        nombre: 'Jabón blanco ala',
-        precio: '$1.000',
-        imagen: 'alapan.jpg', 
-        descripcion: 'Jabón blanco ala x2 unidades.',
-        caracteristicas: ['Pack de 2 unidades', 'Para blanqueo profundo']
-    },
-    {
-        id: 'toallita-always',
-        nombre: 'Toallita Always',
-        precio: '$1250',
-        imagen: 'alwaysToallita.jpg',  
-        descripcion: 'Toallitas Protectoras always.',
-        caracteristicas: ['Tela suave', 'Ajuste perfecto', 'Nuevo pegamento']
-    }
-];
-
-// ========== NUEVA FUNCIÓN PRINCIPAL ==========
-async function cargarProductosMejorado() {
-    console.log('🔄 Cargando productos (estrategia mejorada)...');
+// Función para cargar y mostrar productos en la página
+async function cargarProductos() {
+    console.log('🔄 Cargando productos para mostrar...');
     
-    // PRIMERO: Intentar desde localStorage (más rápido)
-    const productosLocal = cargarDesdeLocalStorage();
+    const contenedor = document.getElementById('contenedorProductos');
+    if (!contenedor) return;
     
-    // MOSTRAR productos locales inmediatamente
-    if (productosLocal && productosLocal.length > 0) {
-        console.log(`📂 Mostrando ${productosLocal.length} productos locales`);
-        
-        // En segundo plano, verificar GitHub para actualizaciones
-        verificarGitHubEnSegundoPlano(productosLocal);
-        
-        return productosLocal;
+    // Obtener productos desde ProductosDB
+    const productos = window.ProductosDB ? window.ProductosDB.obtenerTodos() : [];
+    
+    if (productos.length === 0) {
+        contenedor.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 20px;">🛒</div>
+                <h3 style="margin-bottom: 10px;">No hay productos disponibles</h3>
+                <p>Los productos se cargarán automáticamente desde el servidor.</p>
+            </div>
+        `;
+        return;
     }
     
-    // SEGUNDO: Si no hay locales, intentar GitHub
-    try {
-        console.log('🌐 Intentando cargar desde GitHub...');
-        const respuesta = await fetch(`${GITHUB_RAW_URL_SCRIPT}?t=${Date.now()}`);
+    let html = '';
+    
+    productos.forEach(producto => {
+        // Intentar cargar imagen desde localStorage
+        let imagenSrc = producto.imagen;
         
-        if (respuesta.ok) {
-            const productosGitHub = await respuesta.json();
-            
-            if (Array.isArray(productosGitHub) && productosGitHub.length > 0) {
-                console.log(`✅ ${productosGitHub.length} productos desde GitHub`);
-                guardarEnLocalStorage(productosGitHub);
-                return productosGitHub;
+        // Si es una URL externa, usarla directamente
+        if (producto.imagen.startsWith('http')) {
+            imagenSrc = producto.imagen;
+        } 
+        // Si es un nombre de archivo, intentar cargar desde localStorage
+        else {
+            try {
+                const imagenesGuardadas = JSON.parse(localStorage.getItem('cleanSolutionsImages') || '{}');
+                if (imagenesGuardadas[producto.imagen]) {
+                    imagenSrc = imagenesGuardadas[producto.imagen];
+                }
+            } catch (error) {
+                console.warn('Error al cargar imagen:', error);
             }
         }
-    } catch (error) {
-        console.warn('⚠️ Falló GitHub:', error.message);
-    }
+        
+        html += `
+            <div class="cardProducto">
+                <div class="productoImagen">
+                    <img src="${imagenSrc}" 
+                         alt="${producto.nombre}" 
+                         onerror="this.src='https://via.placeholder.com/250x200/cccccc/969696?text=Sin+imagen'">
+                </div>
+                <div class="productoInfo">
+                    <h3 class="productoNombre">${producto.nombre}</h3>
+                    <div class="productoPrecio">${producto.precio}</div>
+                    <p style="color: #666; font-size: 14px; margin: 10px 0; line-height: 1.4;">
+                        ${producto.descripcion.substring(0, 100)}${producto.descripcion.length > 100 ? '...' : ''}
+                    </p>
+                    <button class="botonVerDetalles" onclick="mostrarDetallesProducto('${producto.id}')">
+                        Ver detalles
+                    </button>
+                </div>
+            </div>
+        `;
+    });
     
-    // TERCERO: Usar por defecto
-    console.log('📦 Usando productos por defecto');
-    guardarEnLocalStorage(PRODUCTOS_POR_DEFECTO);
-    return PRODUCTOS_POR_DEFECTO;
+    contenedor.innerHTML = html;
+    console.log(`✅ ${productos.length} productos mostrados en la página`);
 }
 
-// ========== FUNCIÓN EN SEGUNDO PLANO ==========
-async function verificarGitHubEnSegundoPlano(productosActuales) {
-    setTimeout(async () => {
+// Función para mostrar detalles del producto
+function mostrarDetallesProducto(id) {
+    const productos = window.ProductosDB ? window.ProductosDB.obtenerTodos() : [];
+    const producto = productos.find(p => p.id === id);
+    
+    if (!producto) {
+        alert('Producto no encontrado');
+        return;
+    }
+    
+    // Cargar imagen desde localStorage si es necesario
+    let imagenSrc = producto.imagen;
+    if (!producto.imagen.startsWith('http')) {
         try {
-            const respuesta = await fetch(`${GITHUB_RAW_URL_SCRPIT}?t=${Date.now()}`);
-            if (respuesta.ok) {
-                const productosGitHub = await respuesta.json();
-                
-                if (Array.isArray(productosGitHub) && productosGitHub.length > 0) {
-                    // Comparar si son diferentes
-                    const actualesStr = JSON.stringify(productosActuales);
-                    const githubStr = JSON.stringify(productosGitHub);
-                    
-                    if (githubStr !== actualesStr) {
-                        console.log('🔄 GitHub tiene datos más recientes, actualizando...');
-                        guardarEnLocalStorage(productosGitHub);
-                        
-                        // Actualizar ProductosDB en memoria
-                        if (window.ProductosDB && window.ProductosDB._productos) {
-                            window.ProductosDB._productos = productosGitHub;
-                        }
-                        
-                        // Disparar evento para recargar
-                        window.dispatchEvent(new CustomEvent('productosActualizados', {
-                            detail: { 
-                                productos: productosGitHub,
-                                fuente: 'github_background',
-                                timestamp: new Date().toISOString()
-                            }
-                        }));
-                        
-                        // Mostrar notificación suave
-                        mostrarNotificacionBackground('🔄 Productos actualizados');
-                    }
-                }
+            const imagenesGuardadas = JSON.parse(localStorage.getItem('cleanSolutionsImages') || '{}');
+            if (imagenesGuardadas[producto.imagen]) {
+                imagenSrc = imagenesGuardadas[producto.imagen];
             }
         } catch (error) {
-            // Silencioso - no mostrar error al usuario
-            console.log('🌐 No se pudo verificar GitHub en segundo plano');
+            console.warn('Error al cargar imagen para detalles:', error);
         }
-    }, 2000); // Esperar 2 segundos después de cargar la página
-}
-
-function mostrarNotificacionBackground(mensaje) {
-    const notif = document.createElement('div');
-    notif.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        left: 10px;
-        background: rgba(76, 175, 80, 0.9);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 5px;
-        z-index: 9999;
-        font-size: 12px;
-        opacity: 0;
-        transition: opacity 0.3s;
-    `;
-    notif.innerHTML = mensaje;
-    document.body.appendChild(notif);
-    
-    // Aparecer
-    setTimeout(() => notif.style.opacity = '1', 100);
-    
-    // Desaparecer después de 3 segundos
-    setTimeout(() => {
-        notif.style.opacity = '0';
-        setTimeout(() => notif.remove(), 300);
-    }, 3000);
-}
-
-// ========== FUNCIONES AUXILIARES ==========
-function cargarDesdeLocalStorage() {
-    try {
-        const productosGuardados = localStorage.getItem(PRODUCTOS_KEY);
-        if (productosGuardados) {
-            return JSON.parse(productosGuardados);
-        }
-    } catch (error) {
-        console.error('Error cargando desde localStorage:', error);
     }
-    return null;
-}
-
-function guardarEnLocalStorage(productos) {
-    try {
-        localStorage.setItem(PRODUCTOS_KEY, JSON.stringify(productos));
-        return true;
-    } catch (error) {
-        console.error('Error guardando en localStorage:', error);
-        return false;
+    
+    const modalCuerpo = document.getElementById('modalCuerpo');
+    if (modalCuerpo) {
+        modalCuerpo.innerHTML = `
+            <div class="detalles-producto">
+                <div class="detalles-imagen">
+                    <img src="${imagenSrc}" 
+                         alt="${producto.nombre}"
+                         onerror="this.src='https://via.placeholder.com/300x300/cccccc/969696?text=Imagen+no+disponible'">
+                </div>
+                <div class="detalles-info">
+                    <h2>${producto.nombre}</h2>
+                    <div class="detalles-precio">${producto.precio}</div>
+                    <div class="detalles-descripcion">
+                        ${producto.descripcion}
+                    </div>
+                    
+                    ${producto.caracteristicas && producto.caracteristicas.length > 0 ? `
+                        <h3>Características:</h3>
+                        <ul class="detalles-caracteristicas">
+                            ${producto.caracteristicas.map(car => `<li>${car}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    
+                    <button class="boton-contactar" onclick="contactarPorProducto('${producto.nombre}')">
+                        📲 Contactar por este producto
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Mostrar el modal
+        const modalOverlay = document.getElementById('modalOverlay');
+        if (modalOverlay) {
+            modalOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
     }
 }
 
-// ========== CÓDIGO EXISTENTE (MANTENER) ==========
-// INICIALIZAR PRODUCTOS
-// Usar la nueva función mejorada
-let productos = [];
+// Función para contactar por producto
+function contactarPorProducto(nombreProducto) {
+    const mensaje = `Hola, estoy interesado en el producto: ${nombreProducto}`;
+    const numeroWhatsApp = '3794034489';
+    const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+    
+    window.open(urlWhatsApp, '_blank');
+}
 
-// Cargar inicialmente
-cargarProductosMejorado().then(productosCargados => {
-    productos = productosCargados;
-    console.log(`📊 ${productos.length} productos cargados inicialmente`);
-}).catch(error => {
-    console.error('Error cargando productos:', error);
-    productos = PRODUCTOS_POR_DEFECTO;
+// Configurar búsqueda de productos
+function configurarBusqueda() {
+    const busquedaInput = document.querySelector('.busquedaInput');
+    const busquedaForma = document.querySelector('.busquedaForma');
+    const contadorResultados = document.querySelector('.contador-resultados');
+    
+    if (!busquedaInput || !busquedaForma) return;
+    
+    busquedaForma.addEventListener('submit', function(e) {
+        e.preventDefault();
+        buscarProductos();
+    });
+    
+    busquedaInput.addEventListener('input', function() {
+        buscarProductos();
+    });
+    
+    function buscarProductos() {
+        const termino = busquedaInput.value.trim().toLowerCase();
+        const productos = window.ProductosDB ? window.ProductosDB.obtenerTodos() : [];
+        const cards = document.querySelectorAll('.cardProducto');
+        let resultados = 0;
+        
+        cards.forEach(card => {
+            const nombre = card.querySelector('.productoNombre').textContent.toLowerCase();
+            const descripcion = card.querySelector('p').textContent.toLowerCase();
+            
+            if (termino === '' || nombre.includes(termino) || descripcion.includes(termino)) {
+                card.style.display = 'flex';
+                resultados++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        if (contadorResultados) {
+            if (termino === '') {
+                contadorResultados.style.display = 'none';
+            } else {
+                contadorResultados.style.display = 'block';
+                contadorResultados.textContent = `${resultados} producto${resultados !== 1 ? 's' : ''} encontrado${resultados !== 1 ? 's' : ''}`;
+            }
+        }
+    }
+}
+
+// Cerrar modal de detalles
+document.getElementById('modalCerrar')?.addEventListener('click', function() {
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay) {
+        modalOverlay.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
 });
 
-// Funciones para modificar productos (MANTENER TAL CUAL)
-function agregarProducto(nuevoProducto) {
-    productos.push(nuevoProducto);
-    guardarEnLocalStorage(productos);
-    return nuevoProducto;
-}
-
-function actualizarProducto(id, datosActualizados) {
-    const index = productos.findIndex(p => p.id === id);
-    if (index !== -1) {
-        productos[index] = { ...productos[index], ...datosActualizados };
-        guardarEnLocalStorage(productos);
-        return true;
+// Cerrar modal al hacer clic fuera
+document.getElementById('modalOverlay')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+        document.body.style.overflow = 'auto';
     }
-    return false;
-}
+});
 
-function eliminarProducto(id) {
-    const index = productos.findIndex(p => p.id === id);
-    if (index !== -1) {
-        productos.splice(index, 1);
-        guardarEnLocalStorage(productos);
-        return true;
-    }
-    return false;
-}
+// Escuchar evento de productos actualizados
+window.addEventListener('productosActualizados', function() {
+    console.log('🔄 Recibida notificación de productos actualizados');
+    cargarProductos();
+});
 
-function resetearProductos() {
-    productos = [...PRODUCTOS_POR_DEFECTO];
-    guardarEnLocalStorage(productos);
-    return productos;
-}
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🏪 Inicializando tienda...');
+    
+    // Cargar productos después de un pequeño delay para asegurar que ProductosDB esté listo
+    setTimeout(() => {
+        cargarProductos();
+        configurarBusqueda();
+        
+        // Actualizar versión en el footer
+        const versionElement = document.getElementById('versionProductos');
+        if (versionElement) {
+            const version = localStorage.getItem('productos_version') || '1';
+            versionElement.textContent = version;
+        }
+        
+        // Actualizar última actualización
+        const ultimaActualizacionElement = document.getElementById('ultimaActualizacion');
+        if (ultimaActualizacionElement) {
+            const ahora = new Date();
+            ultimaActualizacionElement.textContent = ahora.toLocaleDateString('es-AR') + ' ' + ahora.toLocaleTimeString('es-AR');
+        }
+    }, 500);
+});
 
-// Exportar funciones (MANTENER TAL CUAL)
-window.ProductosDB = {
-    obtenerTodos: () => [...productos],
-    agregar: agregarProducto,
-    actualizar: actualizarProducto,
-    eliminar: eliminarProducto,
-    resetear: resetearProductos,
-    guardar: () => guardarEnLocalStorage(productos),
-    // Propiedad privada para acceso interno
-    _productos: productos
-};
+// Exportar funciones globales
+window.cargarProductos = cargarProductos;
+window.mostrarDetallesProducto = mostrarDetallesProducto;
+window.contactarPorProducto = contactarPorProducto;

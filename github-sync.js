@@ -1,5 +1,5 @@
 // github-sync.js - Sistema de sincronización automática
-const GITHUB_PRODUCTOS_URL = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
+const GITHUB_SYNC_URL = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
 const LOCAL_STORAGE_KEY = 'cleanSolutionsProductos_v1';
 
 // Verificar si GitHub tiene datos más recientes
@@ -9,7 +9,7 @@ async function verificarYActualizarDesdeGitHub() {
     try {
         // Evitar cache del navegador
         const timestamp = new Date().getTime();
-        const respuesta = await fetch(`${GITHUB_PRODUCTOS_URL}?t=${timestamp}`);
+        const respuesta = await fetch(`${GITHUB_SYNC_URL}?t=${timestamp}`);
         
         if (!respuesta.ok) {
             console.warn('⚠️ No se pudo conectar a GitHub:', respuesta.status);

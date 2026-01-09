@@ -35,14 +35,14 @@ const PRODUCTOS_POR_DEFECTO = [
 // CLAVE para localStorage
 const PRODUCTOS_KEY = 'cleanSolutionsProductos_v1';
 
-// URL de Git// 
-const GITHUB_RAW_URL_SCRIPT = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
+// URL de GitHub para sincronización
+const GITHUB_PRODUCTOS_URL = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
 
 // Función para cargar desde GitHub
 async function cargarProductosDesdeGitHub() {
     try {
         console.log('🌐 Intentando cargar desde GitHub...');
-        const respuesta = await fetch(GITHUB_RAW_URL_SCRIP);
+        const respuesta = await fetch(GITHUB_PRODUCTOS_URL);
         
         if (!respuesta.ok) {
             throw new Error(`Error HTTP: ${respuesta.status}`);
