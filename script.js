@@ -1,6 +1,6 @@
 // productos.js - VERSIÓN MEJORADA (GitHub primero)
 
-const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
+const GITHUB_RAW_URL_SCRIPT = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
 const PRODUCTOS_KEY = 'cleanSolutionsProductos_v1';
 
 // PRODUCTOS POR DEFECTO (backup inicial)
@@ -51,7 +51,7 @@ async function cargarProductosMejorado() {
     // SEGUNDO: Si no hay locales, intentar GitHub
     try {
         console.log('🌐 Intentando cargar desde GitHub...');
-        const respuesta = await fetch(`${GITHUB_RAW_URL}?t=${Date.now()}`);
+        const respuesta = await fetch(`${GITHUB_RAW_URL_SCRIPT}?t=${Date.now()}`);
         
         if (respuesta.ok) {
             const productosGitHub = await respuesta.json();
@@ -76,7 +76,7 @@ async function cargarProductosMejorado() {
 async function verificarGitHubEnSegundoPlano(productosActuales) {
     setTimeout(async () => {
         try {
-            const respuesta = await fetch(`${GITHUB_RAW_URL}?t=${Date.now()}`);
+            const respuesta = await fetch(`${GITHUB_RAW_URL_SCRPIT}?t=${Date.now()}`);
             if (respuesta.ok) {
                 const productosGitHub = await respuesta.json();
                 

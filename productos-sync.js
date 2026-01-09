@@ -1,6 +1,6 @@
 // productos-sync.js - Sistema de sincronización automática con GitHub
 
-const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
+const GITHUB_RAW_URL_SCRIPT = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json';
 const PRODUCTOS_KEY = 'cleanSolutionsProductos_v1';
 const ULTIMA_ACTUALIZACION_KEY = 'ultima_actualizacion';
 
@@ -66,7 +66,7 @@ async function cargarProductos() {
 async function cargarDesdeGitHub() {
     try {
         const timestamp = new Date().getTime();
-        const url = `${GITHUB_RAW_URL}?t=${timestamp}`; // Evitar cache
+        const url = `${GITHUB_RAW_URL_SCRIPT}?t=${timestamp}`; // Evitar cache
         
         const response = await fetch(url);
         
