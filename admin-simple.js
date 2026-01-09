@@ -54,73 +54,155 @@ const HASH_ADMIN = '15b9d0f9e2e3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7
     }
     
     // ========== SISTEMA DE SINCRONIZACIÓN CON GITHUB ==========
-    function crearBotonSincronizarGitHub() {
-        // Verificar si ya existe
-        if (document.getElementById('btnSincronizarGitHub')) return;
-        
-        // Crear contenedor si no existe
-        let container = document.getElementById('importExportContainer');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'importExportContainer';
-            container.style.cssText = `
-                position: fixed;
-                bottom: 140px;
-                right: 20px;
-                z-index: 10000;
-                display: none;
-                flex-direction: column;
-                gap: 10px;
-            `;
-            document.body.appendChild(container);
+    // ========== BOTÓN PARA FORZAR ACTUALIZACIÓN DESDE GITHUB ==========
+function crearBotonActualizarGitHub() {
+    const container = document.getElementById('importExportContainer');
+    if (!container) return;
+    
+    // Verificar si ya existe
+    if (document.getElementById('btnForzarActualizacion')) return;
+    
+    const btnActualizar = document.createElement('button');
+    btnActualizar.id = 'btnForzarActualizacion';
+    btnActualizar.innerHTML = '🔁 Actualizar desde GitHub';
+    btnActualizar.style.cssText = `
+        padding: 10px 15px;
+        background: linear-gradient(135deg, #00BCD4, #0097A7);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s;
+        min-width: 180px;
+    `;
+    
+    // Efecto hover
+    btnActualizar.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+    });
+    
+    btnActualizar.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = 'none';
+    });
+    
+    // ========== EVENTO CLICK MEJORADO ==========
+    btnActualizar.addEventListener('click', async function() {
+        if (!esAdmin) {
+            mostrarNotificacion('❌ Solo administradores pueden actualizar', 'error');
+            return;
         }
         
-        const boton = document.createElement('button');
-        boton.id = 'btnSincronizarGitHub';
-        boton.innerHTML = '🔄 Sincronizar con GitHub';
-        boton.style.cssText = `
-            padding: 12px 18px;
-            background: linear-gradient(135deg, #9C27B0, #673AB7);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.3s, box-shadow 0.3s;
-            min-width: 180px;
-            justify-content: center;
-        `;
+        // Guardar estado original
+        const textoOriginal = this.innerHTML;
+        this.innerHTML = '⏳ Actualizando...';
+        this.disabled = true;
+        this.style.opacity = '0.7';
         
-        // Efecto hover
-        boton.addEventListener('mouseenter', () => {
-            boton.style.transform = 'translateY(-2px)';
-            boton.style.boxShadow = '0 6px 15px rgba(0,0,0,0.3)';
-        });
-        
-        boton.addEventListener('mouseleave', () => {
-            boton.style.transform = 'translateY(0)';
-            boton.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-        });
-        
-        // Evento click mejorado
-        boton.addEventListener('click', async function() {
-            await manejarSincronizacionGitHub();
-        });
-        
-        // Limpiar contenedor y agregar solo este botón
-        container.innerHTML = '';
-        container.appendChild(boton);
-        
-        // Verificar si hay cambios pendientes
-        verificarCambiosPendientes();
-        
-        console.log('✅ Botón de sincronización con GitHub creado');
+        try {
+            console.log('🔄 Forzando actualización manual desde GitHub...');
+            
+            // URL de tu repositorio de datos
+            const githubUrl = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/main/productos.json?t=' + Date.now();
+            
+            // 1. Obtener datos de GitHub
+            const respuesta = await fetch(githubUrl);
+            
+            if (!respuesta.ok) {
+                throw new Error(`Error HTTP: ${respuesta.status}`);
+            }
+            
+            const datosGitHub = await respuesta.json();
+            
+            // ========== MANEJAR AMBOS FORMATOS ==========
+            let productosGitHub;
+            
+            // Formato complejo (con metadata)
+            if (datosGitHub.productos && Array.isArray(datosGitHub.productos)) {
+                console.log('📦 Formato complejo detectado en actualización manual');
+                productosGitHub = datosGitHub.productos;
+            }
+            // Formato simple (array directo)
+            else if (Array.isArray(datosGitHub)) {
+                console.log('📦 Formato simple detectado en actualización manual');
+                productosGitHub = datosGitHub;
+            }
+            else {
+                throw new Error('Formato de datos inválido en GitHub');
+            }
+            
+            console.log(`📥 ${productosGitHub.length} productos recibidos desde GitHub`);
+            
+            // 2. Obtener productos actuales
+            const productosActuales = window.ProductosDB ? window.ProductosDB.obtenerTodos() : [];
+            
+            // 3. Comparar si hay cambios
+            const actualesStr = JSON.stringify(productosActuales);
+            const githubStr = JSON.stringify(productosGitHub);
+            
+            if (githubStr === actualesStr) {
+                mostrarNotificacion('✅ Ya tienes la versión más reciente', 'info');
+                return;
+            }
+            
+            // 4. Actualizar localStorage
+            localStorage.setItem('cleanSolutionsProductos_v1', JSON.stringify(productosGitHub));
+            
+            // 5. Actualizar ProductosDB en memoria
+            if (window.ProductosDB && window.ProductosDB._productos) {
+                window.ProductosDB._productos = productosGitHub;
+            }
+            
+            // 6. Actualizar la interfaz
+            mostrarNotificacion(`✅ ${productosGitHub.length} productos actualizados`, 'success');
+            
+            // Recargar lista en panel admin
+            cargarListaProductosAdmin();
+            
+            // Recargar productos en la página principal
+            if (typeof window.cargarProductos === 'function') {
+                window.cargarProductos();
+            }
+            
+            // 7. Disparar evento para otras partes del sistema
+            window.dispatchEvent(new CustomEvent('productosActualizados', {
+                detail: { 
+                    productos: productosGitHub,
+                    fuente: 'actualizacion_manual',
+                    timestamp: new Date().toISOString()
+                }
+            }));
+            
+            console.log('🔄 Productos actualizados correctamente');
+            
+        } catch (error) {
+            console.error('❌ Error forzando actualización:', error);
+            mostrarNotificacion(`❌ Error: ${error.message}`, 'error');
+        } finally {
+            // Restaurar botón
+            this.innerHTML = textoOriginal;
+            this.disabled = false;
+            this.style.opacity = '1';
+        }
+    });
+    
+    // Insertar después del botón de GitHub
+    const btnGitHub = document.getElementById('btnSincronizarGitHub');
+    if (btnGitHub && btnGitHub.parentNode) {
+        btnGitHub.parentNode.insertBefore(btnActualizar, btnGitHub.nextSibling);
+    } else {
+        container.appendChild(btnActualizar);
     }
+    
+    console.log('✅ Botón de actualización manual creado');
+}
     
     async function manejarSincronizacionGitHub() {
         if (!esAdmin) {
@@ -152,17 +234,17 @@ const HASH_ADMIN = '15b9d0f9e2e3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7
     }
     
     async function sincronizarConGitHub(productos) {
-        // Crear objeto con metadata
-        const datosSincronizacion = {
-            productos: productos,
-            ultimaSincronizacion: new Date().toISOString(),
-            version: localStorage.getItem('productos_version') || '1',
-            metadata: {
-                totalProductos: productos.length,
-                sincronizadoPor: 'Clean Solutions Admin',
-                fecha: new Date().toLocaleDateString('es-AR')
-            }
-        };
+    // Crear objeto con metadata
+    const datosSincronizacion = {
+        productos: productos,  // ✅ CORRECTO: "productos" (no "products")
+        ultimaSincronizacion: new Date().toISOString(),  // ✅ CORRECTO
+        version: localStorage.getItem('productos_version') || '1',
+        metadata: {
+            totalProductos: productos.length,  // ✅ CORRECTO: "totalProductos"
+            sincronizadoPor: 'Clean Solutions Admin',  // ✅ CORRECTO: "sincronizadoPor"
+            fecha: new Date().toLocaleDateString('es-AR')
+        }
+    };
         
         try {
             // Convertir a JSON formateado

@@ -16,13 +16,34 @@ async function verificarYActualizarDesdeGitHub() {
             return false;
         }
         
-        const productosGitHub = await respuesta.json();
+        const datosGitHub = await respuesta.json();
         
-        // Validar estructura
-        if (!Array.isArray(productosGitHub)) {
+        // ========== MODIFICACIÓN IMPORTANTE ==========
+        let productosGitHub;
+        
+        // Si es el formato complejo (con metadata) - el que genera tu sistema
+        if (datosGitHub.productos && Array.isArray(datosGitHub.productos)) {
+            console.log('📦 Formato complejo detectado, extrayendo productos...');
+            productosGitHub = datosGitHub.productos;
+        }
+        // Si es el formato simple (array directo)
+        else if (Array.isArray(datosGitHub)) {
+            console.log('📦 Formato simple detectado (array directo)');
+            productosGitHub = datosGitHub;
+        }
+        else {
             console.warn('⚠️ Formato inválido en GitHub');
             return false;
         }
+        // ========== FIN DE MODIFICACIÓN ==========
+        
+        // Validar que hay productos
+        if (productosGitHub.length === 0) {
+            console.warn('⚠️ No hay productos en GitHub');
+            return false;
+        }
+        
+        console.log(`📥 ${productosGitHub.length} productos recibidos desde GitHub`);
         
         // Obtener productos actuales
         const productosActuales = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
@@ -30,7 +51,7 @@ async function verificarYActualizarDesdeGitHub() {
         // Comparar si hay cambios
         const hayCambios = JSON.stringify(productosGitHub) !== JSON.stringify(productosActuales);
         
-        if (hayCambios && productosGitHub.length > 0) {
+        if (hayCambios) {
             console.log(`🔄 Cambios detectados: ${productosGitHub.length} productos`);
             
             // Guardar en localStorage
@@ -59,12 +80,10 @@ async function verificarYActualizarDesdeGitHub() {
             mostrarNotificacionGitHub(`🔄 Productos actualizados (${productosGitHub.length} items)`);
             
             return true;
-        } else if (productosGitHub.length > 0) {
+        } else {
             console.log('✅ Ya estás actualizado con GitHub');
             return false;
         }
-        
-        return false;
         
     } catch (error) {
         console.error('❌ Error verificando GitHub:', error.message);

@@ -48,21 +48,35 @@ async function cargarProductosDesdeGitHub() {
             throw new Error(`Error HTTP: ${respuesta.status}`);
         }
         
-        const productosDesdeGitHub = await respuesta.json();
+        const datosGitHub = await respuesta.json();
+        
+        // ========== MODIFICACIÓN IMPORTANTE ==========
+        let productosDesdeGitHub;
+        
+        // Si es el formato complejo (con metadata) - el que genera tu sistema
+        if (datosGitHub.productos && Array.isArray(datosGitHub.productos)) {
+            console.log('📦 Formato complejo detectado en carga inicial');
+            productosDesdeGitHub = datosGitHub.productos;
+        }
+        // Si es el formato simple (array directo)
+        else if (Array.isArray(datosGitHub)) {
+            console.log('📦 Formato simple detectado en carga inicial');
+            productosDesdeGitHub = datosGitHub;
+        }
+        else {
+            throw new Error('Formato de datos inválido en GitHub');
+        }
+        // ========== FIN DE MODIFICACIÓN ==========
+        
         console.log(`✅ ${productosDesdeGitHub.length} productos cargados desde GitHub`);
         
-        // Validar que sea un array
-        if (Array.isArray(productosDesdeGitHub) && productosDesdeGitHub.length > 0) {
-            // Guardar en localStorage como respaldo
-            guardarProductosEnStorage(productosDesdeGitHub);
-            return productosDesdeGitHub;
-        } else {
-            throw new Error('Formato de datos inválido');
-        }
+        // Guardar en localStorage como respaldo
+        guardarProductosEnStorage(productosDesdeGitHub);
+        return productosDesdeGitHub;
         
     } catch (error) {
         console.warn('⚠️ No se pudo cargar desde GitHub:', error.message);
-        return null; // Retornar null para indicar fallo
+        return null;
     }
 }
 
