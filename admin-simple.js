@@ -1303,80 +1303,92 @@ function crearBotonActualizarGitHub() {
         this.style.boxShadow = 'none';
     });
     
-    // Evento click
-    btnActualizar.addEventListener('click', async function() {
-        if (!esAdmin) {
-            mostrarNotificacion('❌ Solo administradores pueden actualizar', 'error');
+  // Evento click - VERSIÓN MEJORADA
+btnActualizar.addEventListener('click', async function() {
+    if (!esAdmin) {
+        mostrarNotificacion('❌ Solo administradores pueden actualizar', 'error');
+        return;
+    }
+    
+    // Guardar estado original
+    const textoOriginal = this.innerHTML;
+    this.innerHTML = '⏳ Actualizando...';
+    this.disabled = true;
+    this.style.opacity = '0.7';
+    
+    try {
+        console.log('🔄 Forzando actualización manual desde GitHub...');
+        
+        // URL de tu repositorio de datos
+        const githubUrl = 'https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/main/productos.json?t=' + Date.now();
+        
+        // 1. Obtener datos de GitHub
+        const respuesta = await fetch(githubUrl);
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+        
+        const productosGitHub = await respuesta.json();
+        
+        if (!Array.isArray(productosGitHub)) {
+            throw new Error('Formato de datos inválido');
+        }
+        
+        console.log(`📥 ${productosGitHub.length} productos recibidos desde GitHub`);
+        
+        // 2. Obtener productos actuales
+        const productosActuales = window.ProductosDB ? window.ProductosDB.obtenerTodos() : [];
+        
+        // 3. Comparar si hay cambios
+        const actualesStr = JSON.stringify(productosActuales);
+        const githubStr = JSON.stringify(productosGitHub);
+        
+        if (githubStr === actualesStr) {
+            mostrarNotificacion('✅ Ya tienes la versión más reciente', 'info');
             return;
         }
         
-        // Guardar estado original
-        const textoOriginal = this.innerHTML;
-        this.innerHTML = '⏳ Actualizando...';
-        this.disabled = true;
-        this.style.opacity = '0.7';
+        // 4. Actualizar localStorage
+        localStorage.setItem('cleanSolutionsProductos_v1', JSON.stringify(productosGitHub));
         
-        try {
-            // Intentar actualizar
-            console.log('🔄 Forzando actualización manual desde GitHub...');
-            
-            // Método 1: Usar función global si existe
-            if (window.actualizarDesdeGitHub) {
-                const actualizado = await window.actualizarDesdeGitHub();
-                
-                if (actualizado) {
-                    mostrarNotificacion('✅ Productos actualizados desde GitHub', 'success');
-                    
-                    // Recargar lista de productos en admin
-                    cargarListaProductosAdmin();
-                    
-                    // Recargar productos en la página principal
-                    if (typeof window.cargarProductos === 'function') {
-                        window.cargarProductos();
-                    }
-                } else {
-                    mostrarNotificacion('✅ Ya tienes la versión más reciente', 'info');
-                }
-            } 
-            // Método 2: Hacer fetch manual
-            else {
-                const respuesta = await fetch('https://raw.githubusercontent.com/facundoemilianopujol02-maker/clean-solutions-data/refs/heads/main/productos.json' + Date.now());
-                
-                if (respuesta.ok) {
-                    const productosGitHub = await respuesta.json();
-                    
-                    if (Array.isArray(productosGitHub) && productosGitHub.length > 0) {
-                        // Guardar en localStorage
-                        localStorage.setItem('cleanSolutionsProductos_v1', JSON.stringify(productosGitHub));
-                        
-                        // Actualizar ProductosDB
-                        if (window.ProductosDB && window.ProductosDB._productos) {
-                            window.ProductosDB._productos = productosGitHub;
-                        }
-                        
-                        mostrarNotificacion(`✅ ${productosGitHub.length} productos actualizados`, 'success');
-                        
-                        // Recargar
-                        cargarListaProductosAdmin();
-                        if (typeof window.cargarProductos === 'function') {
-                            window.cargarProductos();
-                        }
-                    }
-                } else {
-                    throw new Error('Error al cargar desde GitHub');
-                }
-            }
-            
-        } catch (error) {
-            console.error('Error forzando actualización:', error);
-            mostrarNotificacion('❌ Error al actualizar desde GitHub', 'error');
-        } finally {
-            // Restaurar botón
-            this.innerHTML = textoOriginal;
-            this.disabled = false;
-            this.style.opacity = '1';
+        // 5. Actualizar ProductosDB en memoria
+        if (window.ProductosDB && window.ProductosDB._productos) {
+            window.ProductosDB._productos = productosGitHub;
         }
-    });
+        
+        // 6. Actualizar la interfaz
+        mostrarNotificacion(`✅ ${productosGitHub.length} productos actualizados`, 'success');
+        
+        // Recargar lista en panel admin
+        cargarListaProductosAdmin();
+        
+        // Recargar productos en la página principal
+        if (typeof window.cargarProductos === 'function') {
+            window.cargarProductos();
+        }
+        
+        // 7. Disparar evento para otras partes del sistema
+        window.dispatchEvent(new CustomEvent('productosActualizados', {
+            detail: { 
+                productos: productosGitHub,
+                fuente: 'actualizacion_manual',
+                timestamp: new Date().toISOString()
+            }
+        }));
+        
+        console.log('🔄 Productos actualizados correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error forzando actualización:', error);
+        mostrarNotificacion(`❌ Error: ${error.message}`, 'error');
+    } finally {
+        // Restaurar botón
+        this.innerHTML = textoOriginal;
+        this.disabled = false;
+        this.style.opacity = '1';
+    }
+});
     
     // Insertar después del botón de GitHub
     const btnGitHub = document.getElementById('btnSincronizarGitHub');
