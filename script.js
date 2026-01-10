@@ -1,5 +1,6 @@
 // script.js - Archivo principal para mostrar productos
-const PLACEHOLDER_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="200"%3E%3Crect width="100%25" height="100%25" fill="%23f0f0f0"%3E%3C/rect%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="16" fill="%23999"%3ESin%20imagen%3C/text%3E%3C/svg%3E';
+// USAR LA VARIABLE GLOBAL DE productos.js - YA DEFINIDA
+// No redeclarar PLACEHOLDER_SVG aquí
 
 // Variable global para GitHub (si no existe)
 if (typeof GITHUB_RAM_URL_SCRIPT === 'undefined') {
@@ -11,31 +12,25 @@ async function cargarProductos() {
     console.log('🔄 Cargando productos para mostrar...');
     
     try {
-        // 1. Intentar cargar desde localStorage
-        const productosGuardados = localStorage.getItem('productos');
+        // 1. Usar ProductosDB (ya cargado desde productos.js)
         let productos = [];
         
-        if (productosGuardados) {
-            productos = JSON.parse(productosGuardados);
-            console.log(`📂 ${productos.length} productos cargados desde localStorage`);
+        if (window.ProductosDB && window.ProductosDB.obtenerTodos) {
+            productos = window.ProductosDB.obtenerTodos();
+            console.log(`📂 ${productos.length} productos cargados desde ProductosDB`);
         } else {
-            // 2. Si no hay en localStorage, cargar desde GitHub
-            console.log('Intentando cargar desde GitHub...');
-            try {
-                const response = await fetch(GITHUB_RAM_URL_SCRIPT);
-                if (!response.ok) throw new Error('Error en GitHub');
-                
-                const data = await response.json();
-                const contenido = JSON.parse(atob(data.content));
-                productos = contenido.productos || contenido;
-                console.log(`📥 ${productos.length} productos recibidos desde GitHub`);
-                
-                // Guardar en localStorage
-                localStorage.setItem('productos', JSON.stringify(productos));
-                console.log(`💾 ${productos.length} productos guardados en localStorage`);
-            } catch (error) {
-                console.error('No se pudo cargar desde GitHub:', error);
+            console.warn('⚠️ ProductosDB no disponible, usando localStorage...');
+            // 2. Intentar cargar desde localStorage como respaldo
+            const productosGuardados = localStorage.getItem('cleanSolutionsProductos_v1');
+            
+            if (productosGuardados) {
+                productos = JSON.parse(productosGuardados);
+                console.log(`📂 ${productos.length} productos cargados desde localStorage`);
             }
+        }
+        
+        if (productos.length === 0) {
+            console.warn('⚠️ No hay productos disponibles');
         }
         
         // 3. Mostrar productos en la página
@@ -43,8 +38,10 @@ async function cargarProductos() {
         
     } catch (error) {
         console.error('Error cargando productos:', error);
-        document.getElementById('productos-container').innerHTML = 
-            '<p style="color: red; text-align: center;">Error cargando productos</p>';
+        const container = document.getElementById('productos-container');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">Error cargando productos</p>';
+        }
     }
 }
 
@@ -58,7 +55,7 @@ function mostrarProductosEnPagina(productos) {
     }
     
     if (!productos || productos.length === 0) {
-        container.innerHTML = '<p style="text-align: center;">No hay productos disponibles</p>';
+        container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No hay productos disponibles</p>';
         return;
     }
     
@@ -68,18 +65,20 @@ function mostrarProductosEnPagina(productos) {
         const card = document.createElement('div');
         card.className = 'product-card';
         
-        // Usar PLACEHOLDER_SVG si no hay imagen
-        const imagenSrc = producto.imagen || producto.image || PLACEHOLDER_SVG;
+        // Usar placeholder correcto (variable global de productos.js)
+        const imagenSrc = producto.imagen || 
+                         producto.image || 
+                         (window.PLACEHOLDER_SVG || 'https://via.placeholder.com/250x200/cccccc/969696?text=Sin+imagen');
         
         card.innerHTML = `
             <img src="${imagenSrc}" 
                  alt="${producto.nombre || 'Producto'}" 
                  class="product-img"
-                 onerror="this.src='${PLACEHOLDER_SVG}'; this.onerror=null;">
-            <h3>${producto.nombre || 'Sin nombre'}</h3>
-            <p>${producto.descripcion || 'Sin descripción'}</p>
-            <p><strong>Precio: $${producto.precio || '0'}</strong></p>
-            ${producto.stock ? `<p>Stock: ${producto.stock}</p>` : ''}
+                 onerror="this.src='${window.PLACEHOLDER_SVG || 'https://via.placeholder.com/250x200/cccccc/969696?text=Error'}'; this.onerror=null;">
+            <h3 style="margin: 10px 0; color: #333;">${producto.nombre || 'Sin nombre'}</h3>
+            <p style="color: #666; margin: 5px 0; flex-grow: 1;">${producto.descripcion || 'Sin descripción'}</p>
+            <p style="margin: 10px 0;"><strong style="color: #000; font-size: 1.2rem;">${producto.precio || '$0'}</strong></p>
+            ${producto.stock ? `<p style="color: #4CAF50; margin: 5px 0;">Stock: ${producto.stock}</p>` : ''}
         `;
         
         container.appendChild(card);
@@ -92,9 +91,14 @@ function mostrarProductosEnPagina(productos) {
 document.addEventListener('DOMContentLoaded', function() {
     cargarProductos();
     
-    // Actualizar cada 30 segundos
+    // Actualizar cuando se detecten cambios
+    window.addEventListener('productosActualizados', function() {
+        console.log('🔄 Evento de actualización recibido, recargando productos...');
+        cargarProductos();
+    });
+    
+    // Actualizar cada 30 segundos (por si acaso)
     setInterval(() => {
-        console.log('🔄 Actualizando productos...');
         cargarProductos();
     }, 30000);
 });
@@ -102,9 +106,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // Función para forzar actualización desde GitHub
 window.actualizarDesdeGitHub = async function() {
     console.log('🔄 Forzando actualización desde GitHub...');
-    localStorage.removeItem('productos');
-    await cargarProductos();
-    alert('Productos actualizados desde GitHub');
+    
+    if (window.verificarYActualizarDesdeGitHub) {
+        await window.verificarYActualizarDesdeGitHub();
+    } else {
+        console.warn('⚠️ Función de actualización GitHub no disponible');
+        alert('Función de actualización no disponible');
+    }
 };
 
 // Exportar funciones si es necesario

@@ -64,8 +64,8 @@
             <div id="admin-content"></div>
         </div>
     </div>
-
-    <!-- Scripts -->
+    
+        <!-- Scripts -->
     <script src="productos.js"></script>
     <script src="github-sync.js"></script>
     <script src="admin-simple.js"></script>
@@ -84,6 +84,13 @@
                 }
             }
         });
+        
+        // Función global para recargar productos
+        window.cargarProductos = function() {
+            if (typeof cargarProductos === 'function') {
+                cargarProductos();
+            }
+        };
     </script>
 </body>
 </html>
