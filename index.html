@@ -1,249 +1,358 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clean Solutions - Productos de Limpieza</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Scripts que necesitas -->
+    <script src="productos.js"></script>  <!-- Tu archivo productos.js -->
+    <script src="script.js"></script>      <!-- El nuevo script.js que te di -->
 </head>
 <body>
-    <!-- BARRA SUPERIOR -->
+    <!-- ===== BARRA SUPERIOR ===== -->
     <header class="franjaSuperior">
         <div class="logoContainer">
-            <img src="logocleans.jpg" alt="Clean Solutions Logo">
+            <img src="https://via.placeholder.com/150x60/4CAF50/FFFFFF?text=CLEAN+SOLUTIONS" alt="Clean Solutions Logo" id="logoEmpresa">
         </div>
         
-        <!-- BÚSQUEDA -->
-        <div class="busquedaContainer">
-            <form class="busquedaForma">
-                <input type="text" 
-                       class="busquedaInput" 
-                       placeholder="🔍 Buscar productos por nombre, descripción..."
-                       aria-label="Buscar productos">
-                <button type="submit" class="busquedaBoton">
-                    🔍
-                </button>
-            </form>
-            <div class="contador-resultados"></div>
-        </div>
-        
-        <div class="derechoContainer">
-            
-            <button id="btnAdminAcceso" class="auth-btn">
-                🔑 Acceso Admin
-            </button>
-            <button id="btnAdminPanel" class="auth-btn" style="display: none;">
-                ⚙️ Panel Admin
-            </button>
-            <!-- ⭐ ESTE ES EL BOTÓN QUE DEBE EXISTIR EN EL HTML ⭐ -->
-            <button id="btnCerrarSesionAdmin" class="auth-btn" style="display: none; background-color: #f44336; color: white; margin-left: 10px;">
-                🚪 Cerrar Sesión Admin
-            </button>
+        <div class="auth-container">
+            <div class="auth-buttons" id="authButtonsContainer">
+                <!-- Estado cuando el usuario NO está logueado -->
+                <div id="noAuthState">
+                    <button class="auth-btn" id="btnIniciarSesion">
+                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                    </button>
+                    <button class="auth-btn primary" id="btnRegistrarse">
+                        <i class="fas fa-user-plus"></i> Registrarse
+                    </button>
+                </div>
+                
+                <!-- Estado cuando el usuario SÍ está logueado -->
+                <div id="authState" class="user-info">
+                    <span class="welcome-text">
+                        <i class="fas fa-user-circle"></i> Bienvenido, <strong id="userName">Usuario</strong>
+                    </span>
+                    <button class="auth-btn" id="btnCerrarSesion">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <!-- MODAL DE ACCESO ADMINISTRATIVO -->
-    <div id="modalAccesoAdmin" class="modal-overlay" style="display: none;">
-        <div class="modal-contenido" style="max-width: 400px;">
-            <button class="modal-cerrar cerrar-acceso-admin" type="button">×</button>
-            <div class="modal-cuerpo">
-                <h2>🔐 Acceso Administrativo</h2>
-                <form id="formAccesoAdmin">
-                    <div class="form-group">
-                        <label for="claveAdmin">Clave de Administrador</label>
-                        <input type="password" id="claveAdmin" 
-                               placeholder="Ingrese la clave secreta" 
-                               autocomplete="off"
-                               required>
-                        <small style="color: #666; display: block; margin-top: 5px;">
-                            Solo para administradores autorizados
-                        </small>
-                    </div>
-                    <button type="submit" class="auth-submit-btn">
-                        Verificar y Acceder
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE GESTIÓN DE PRODUCTOS -->
-    <div id="modalGestionProductos" class="modal-overlay" style="display: none;">
-        <div class="modal-contenido" style="max-width: 800px;">
-            <button class="modal-cerrar cerrar-gestion-productos">×</button>
-            <div class="modal-cuerpo">
-                <h2>🛍️ Gestión de Productos</h2>
-                
-                <!-- INSTRUCCIONES DE SINCRONIZACIÓN -->
-                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196F3;">
-                    <h4 style="margin: 0 0 10px 0; color: #0D47A1;">🔄 Sistema de Sincronización</h4>
-                    <p style="margin: 0; color: #333; font-size: 14px;">
-                        <strong>Para mantener sincronizadas varias computadoras:</strong><br>
-                        1. Los cambios se guardan automáticamente<br>
-                        2. Usa el botón <strong>🔄 Sincronizar con GitHub</strong> para compartir cambios<br>
-                        3. Usa <strong>🔁 Actualizar desde GitHub</strong> para obtener los últimos cambios<br>
-                        4. Todos los cambios se sincronizan cada 30 segundos automáticamente
-                    </p>
-                </div>
-                
-                <!-- CONTENEDOR PARA BOTONES DE IMPORT/EXPORT -->
-                <div id="importExportContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                    <!-- Los botones se crearán automáticamente por JavaScript -->
-                    <!-- 1. 🔄 Sincronizar con GitHub -->
-                    <!-- 2. 🔁 Actualizar desde GitHub -->
-                    <!-- 3. 📤 Exportar para Backup -->
-                </div>
-                
-                <!-- Formulario para agregar/editar productos -->
-                <div class="admin-section">
-                    <h3 id="tituloFormProducto">Agregar Nuevo Producto</h3>
-                    <form id="formProducto">
-                        <input type="hidden" id="productoId">
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="adminNombre">Nombre del Producto *</label>
-                                <input type="text" id="adminNombre" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="adminPrecio">Precio *</label>
-                                <input type="text" id="adminPrecio" placeholder="$8.000" required>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="adminImagen">Imagen del Producto *</label>
-                            
-                            <!-- Área de arrastrar y soltar -->
-                            <div class="drag-drop-area" id="dragDropArea">
-                                <div class="drag-drop-content">
-                                    <div class="drag-icon">📁</div>
-                                    <p class="drag-text">Arrastra y suelta la imagen aquí</p>
-                                    <p class="drag-subtext">o haz clic para seleccionar</p>
-                                    <input type="file" id="adminImagenFile" accept="image/*" style="display: none;">
-                                </div>
-                                <div class="preview-container" id="previewContainer" style="display: none;">
-                                    <img id="imagePreview" class="preview-image">
-                                    <button type="button" class="preview-remove" id="removePreview">🗑️</button>
-                                    <span class="preview-name" id="previewName"></span>
-                                </div>
-                            </div>
-                            
-                            <!-- Input oculto para guardar el nombre del archivo -->
-                            <input type="text" id="adminImagen" style="display: none;" required>
-                            
-                            <small>Formatos aceptados: JPG, PNG, GIF. Máx: 5MB</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="adminDescripcion">Descripción *</label>
-                            <textarea id="adminDescripcion" rows="3" required></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="adminCaracteristicas">Características (una por línea)</label>
-                            <textarea id="adminCaracteristicas" rows="4" 
-                                      placeholder="Precio por litro: $1.800&#10;Pack de 2 unidades"></textarea>
-                        </div>
-                        
-                        <div class="form-buttons">
-                            <button type="submit" class="auth-submit-btn">
-                                💾 Guardar Producto
-                            </button>
-                            <button type="button" class="auth-btn" id="btnCancelarEdicion">
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                
-                <!-- Lista de productos existentes -->
-                <div class="admin-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="margin: 0;">Productos Existentes</h3>
-                        <div style="font-size: 14px; color: #666;">
-                            Total: <span id="contadorProductos">0</span> productos
-                        </div>
-                    </div>
-                    <div id="listaProductosAdmin" 
-                         style="max-height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 10px;">
-                        <!-- Se llena dinámicamente con JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE DETALLES DEL PRODUCTO (para clientes) -->
-    <div id="modalOverlay" class="modal-overlay">
-        <div class="modal-contenido">
-            <button class="modal-cerrar" id="modalCerrar" type="button">×</button>
-            <div class="modal-cuerpo" id="modalCuerpo"></div>
-        </div>
-    </div>
-
-    <!-- CONTENIDO PRINCIPAL -->
+    <!-- ===== CONTENIDO PRINCIPAL ===== -->
     <main class="main-content">
         <div class="container">
-            <h2 class="section-title">Nuestros Productos</h2>
-            <div id="contenedorProductos" class="productos-grid"></div>
+            <h1 class="section-title">Nuestros Productos de Limpieza</h1>
+            
+            <!-- Barra de búsqueda simple -->
+            <div class="busqueda-simple">
+                <input type="text" 
+                       id="busquedaSimpleInput" 
+                       placeholder="Buscar productos, categorías o descripciones...">
+            </div>
+            
+            <!-- Contador de resultados -->
+            <div class="contador-resultados" id="contadorResultados">
+                Mostrando <span id="contadorNumero">0</span> productos de <span id="totalProductos">0</span>
+            </div>
+            
+            <!-- Grid de productos (se llena dinámicamente) -->
+            <div class="productos-grid" id="productosGrid">
+                <!-- Los productos se cargarán aquí desde JavaScript -->
+                <div class="cargando-productos">
+                    <i class="fas fa-spinner fa-spin"></i> Cargando productos...
+                </div>
+            </div>
         </div>
     </main>
 
-    <!-- BOTÓN FLOTANTE DE RESET (solo para admin) -->
-    <div id="resetContainer" style="position: fixed; bottom: 80px; right: 20px; z-index: 10000; display: none;">
-        <button id="btnResetProductos" 
-                style="padding: 12px 18px; background: linear-gradient(135deg, #ff9800, #ff5722); 
-                       color: white; border: none; border-radius: 10px; font-size: 14px; 
-                       cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                       font-weight: bold; display: flex; align-items: center; gap: 8px;
-                       transition: transform 0.3s, box-shadow 0.3s;">
-            🔄 Resetear Productos
-        </button>
+    <!-- ===== MODALES ===== -->
+    
+    <!-- Modal de Detalles de Producto -->
+    <div id="modalProducto" class="modal-overlay">
+        <button class="modal-cerrar" id="cerrarModalProducto">×</button>
+        <div class="modal-contenido">
+            <div class="modal-cuerpo" id="modalProductoCuerpo">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Inicio de Sesión -->
+    <div id="modalLogin" class="modal-overlay auth-modal">
+        <button class="modal-cerrar" id="cerrarModalLogin">×</button>
+        <div class="modal-contenido">
+            <div class="modal-cuerpo">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Iniciar Sesión</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail"><i class="fas fa-envelope"></i> Correo Electrónico</label>
+                        <input type="email" id="loginEmail" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword"><i class="fas fa-lock"></i> Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="auth-submit-btn">
+                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                    </button>
+                </form>
+                <div class="auth-link">
+                    ¿No tienes cuenta? <a href="#" id="linkRegistro">Regístrate aquí</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Registro -->
+    <div id="modalRegistro" class="modal-overlay auth-modal">
+        <button class="modal-cerrar" id="cerrarModalRegistro">×</button>
+        <div class="modal-contenido">
+            <div class="modal-cuerpo">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Crear Cuenta</h2>
+                <form id="registroForm">
+                    <div class="form-group">
+                        <label for="registroNombre"><i class="fas fa-user"></i> Nombre Completo</label>
+                        <input type="text" id="registroNombre" placeholder="Nombre Apellido" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registroEmail"><i class="fas fa-envelope"></i> Correo Electrónico</label>
+                        <input type="email" id="registroEmail" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registroPassword"><i class="fas fa-lock"></i> Contraseña</label>
+                        <input type="password" id="registroPassword" placeholder="••••••••" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registroConfirmar"><i class="fas fa-lock"></i> Confirmar Contraseña</label>
+                        <input type="password" id="registroConfirmar" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="auth-submit-btn">
+                        <i class="fas fa-user-plus"></i> Registrarse
+                    </button>
+                </form>
+                <div class="auth-link">
+                    ¿Ya tienes cuenta? <a href="#" id="linkLogin">Inicia sesión aquí</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Administración -->
+    <div id="modalAdmin" class="modal-overlay admin-modal">
+        <button class="modal-cerrar" id="cerrarModalAdmin">×</button>
+        <div class="modal-contenido">
+            <div class="modal-cuerpo">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Panel de Administración</h2>
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-tab="dashboard">Dashboard</button>
+                    <button class="admin-tab" data-tab="productos">Productos</button>
+                    <button class="admin-tab" data-tab="usuarios">Usuarios</button>
+                    <button class="admin-tab" data-tab="configuracion">Configuración</button>
+                </div>
+                
+                <div id="tabDashboard" class="tab-content active">
+                    <h3>Resumen del Sistema</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total Productos</h3>
+                            <div class="stat-value" id="statProductos">0</div>
+                            <div class="stat-label">En inventario</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Usuarios Registrados</h3>
+                            <div class="stat-value" id="statUsuarios">0</div>
+                            <div class="stat-label">Activos</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Pedidos Hoy</h3>
+                            <div class="stat-value" id="statPedidos">0</div>
+                            <div class="stat-label">Realizados</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tabProductos" class="tab-content">
+                    <h3>Gestión de Productos</h3>
+                    <div class="admin-section">
+                        <div class="admin-header">
+                            <h4>Lista de Productos</h4>
+                            <button class="btn-primary" id="btnAgregarProductoAdmin">
+                                <i class="fas fa-plus"></i> Agregar Producto
+                            </button>
+                        </div>
+                        <div class="productos-admin-list">
+                            <p>Gestión de productos cargada desde JavaScript</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tabUsuarios" class="tab-content">
+                    <h3>Gestión de Usuarios</h3>
+                    <div class="admin-section">
+                        <p>Aquí puedes administrar los usuarios del sistema.</p>
+                        <div class="admin-table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1</td>
+                                        <td>Usuario Demo</td>
+                                        <td>demo@email.com</td>
+                                        <td><span class="status-badge status-admin">Admin</span></td>
+                                        <td>
+                                            <button class="btn-sm btn-edit">Editar</button>
+                                            <button class="btn-sm btn-danger">Eliminar</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tabConfiguracion" class="tab-content">
+                    <h3>Configuración del Sistema</h3>
+                    <div class="settings-grid">
+                        <div class="setting-card">
+                            <h4>General</h4>
+                            <div class="checkbox-label">
+                                <input type="checkbox" id="configMostrarPrecios" checked>
+                                <label for="configMostrarPrecios">Mostrar precios</label>
+                            </div>
+                            <div class="checkbox-label">
+                                <input type="checkbox" id="configHabilitarBusqueda" checked>
+                                <label for="configHabilitarBusqueda">Habilitar búsqueda</label>
+                            </div>
+                        </div>
+                        <div class="setting-card">
+                            <h4>Seguridad</h4>
+                            <div class="security-options">
+                                <div class="checkbox-label">
+                                    <input type="checkbox" id="configRequerirLogin" checked>
+                                    <label for="configRequerirLogin">Requerir login para ver detalles</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- CONTENEDOR FLOTANTE PARA BOTONES DE IMPORT/EXPORT (solo para admin) -->
-    <div id="importExportContainerFloating" 
-         style="position: fixed; bottom: 140px; right: 20px; z-index: 10000; display: none; flex-direction: column; gap: 10px;">
-        <!-- Los botones se crearán automáticamente por JavaScript -->
-    </div>
-
-    <!-- FOOTER -->
+    <!-- ===== FOOTER ===== -->
     <footer class="footer">
         <div class="container">
-            <p>© 2024 Clean Solutions - Todos los derechos reservados</p>
-            <p style="margin-top: 10px; font-size: 14px; color: #999;">
-                📱 WhatsApp: +3794034489 | 📧 npamaciel@gmail.com | 📸 @clean.solutions610
-            </p>
-            <p style="margin-top: 10px; font-size: 12px; color: #777;">
-                🔄 Sistema de sincronización automática con GitHub activo
-                <span id="syncIndicator" class="sync-indicator" style="margin-left: 10px;">● Conectado</span>
-            </p>
+            <p>&copy; 2023 Clean Solutions. Todos los derechos reservados.</p>
+            <p>Productos profesionales de limpieza para hogares y empresas.</p>
+            <div class="footer-search">
+                <input type="text" placeholder="Buscar en el sitio..." style="padding: 8px 15px; font-size: 14px;">
+            </div>
         </div>
     </footer>
 
-    <!-- SCRIPTS ESENCIALES (EN ESTE ORDEN) -->
-    <script src="productos.js"></script>      <!-- 1. Sistema de persistencia de productos -->
-    <script src="github-sync.js"></script>    <!-- 2. Sistema de sincronización automática -->
-    <script src="script.js"></script>        <!-- 3. Funcionalidad principal para mostrar productos -->
-    <script src="admin-simple.js"></script>  <!-- 4. Sistema admin completo (incluye sincronización manual) -->
-    
+    <!-- ===== BOTÓN ADMIN FLOTANTE ===== -->
+    <button id="btnAdminFlotante" title="Panel de Administración">
+        <i class="fas fa-cogs"></i>
+    </button>
+
+    <!-- ===== SCRIPTS ADICIONALES ===== -->
     <script>
-        // Configuración global adicional
+        // Scripts específicos para funcionalidades del HTML
+        
+        // 1. Botón admin flotante
         document.addEventListener('DOMContentLoaded', function() {
-            // Asegurar que todos los elementos se carguen correctamente
-            console.log('✅ Página completamente cargada');
+            const btnAdminFlotante = document.getElementById('btnAdminFlotante');
+            if (btnAdminFlotante) {
+                btnAdminFlotante.addEventListener('click', function() {
+                    document.getElementById('modalAdmin').style.display = 'flex';
+                });
+            }
             
-            // Verificar conexión GitHub
-            setTimeout(() => {
-                const indicator = document.getElementById('syncIndicator');
-                if (indicator) {
-                    indicator.innerHTML = '🔄 Sincronización activa';
-                    indicator.style.color = '#4CAF50';
+            // 2. Tabs del panel de administración
+            document.querySelectorAll('.admin-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remover clase active de todos los tabs
+                    document.querySelectorAll('.admin-tab').forEach(t => {
+                        t.classList.remove('active');
+                    });
+                    
+                    // Ocultar todos los contenidos
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Activar tab actual
+                    this.classList.add('active');
+                    
+                    // Mostrar contenido correspondiente
+                    const tabId = this.getAttribute('data-tab');
+                    const tabContent = document.getElementById(`tab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+                    if (tabContent) {
+                        tabContent.classList.add('active');
+                    }
+                });
+            });
+            
+            // 3. Botón agregar producto en admin
+            const btnAgregarProductoAdmin = document.getElementById('btnAgregarProductoAdmin');
+            if (btnAgregarProductoAdmin) {
+                btnAgregarProductoAdmin.addEventListener('click', function() {
+                    alert('Función de agregar producto (se implementaría en una versión completa)');
+                });
+            }
+            
+            // 4. Actualizar stats en dashboard
+            function actualizarStats() {
+                const statProductos = document.getElementById('statProductos');
+                const productosGrid = document.getElementById('productosGrid');
+                
+                if (statProductos && productosGrid) {
+                    const cantidadProductos = productosGrid.querySelectorAll('.cardProducto').length;
+                    statProductos.textContent = cantidadProductos;
                 }
-            }, 2000);
+            }
+            
+            // Actualizar stats periódicamente
+            setInterval(actualizarStats, 2000);
+            
+            // 5. Estilo para productos cargando
+            const productosGrid = document.getElementById('productosGrid');
+            if (productosGrid) {
+                productosGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin fa-2x" style="color: #4CAF50;"></i>
+                        <p style="margin-top: 15px; color: #666;">Cargando productos...</p>
+                    </div>
+                `;
+            }
         });
+        
+        // 6. Función global para abrir modal de admin
+        window.abrirPanelAdmin = function() {
+            const modalAdmin = document.getElementById('modalAdmin');
+            if (modalAdmin) {
+                modalAdmin.style.display = 'flex';
+            }
+        };
+        
+        // 7. Función global para mostrar notificación
+        window.mostrarNotificacion = function(mensaje, tipo = 'info') {
+            console.log(`📢 Notificación: ${mensaje} (${tipo})`);
+            // En una versión completa, aquí se mostraría una notificación bonita
+        };
     </script>
 </body>
 </html>
